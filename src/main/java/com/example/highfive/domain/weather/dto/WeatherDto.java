@@ -11,9 +11,10 @@ public class WeatherDto {
     @Getter
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @AllArgsConstructor
+    @Builder
     public static class WeatherRequest{
-        private Float lat;    // 위도
-        private Float lon;    // 경도
+        private Double lat;    // 위도
+        private Double lon;    // 경도
     }
 
     @Getter
@@ -22,6 +23,7 @@ public class WeatherDto {
     @Builder
     public static class WeatherResponse{
         private String description;
+        private Double rain;
         private Double temp_min;
         private Double temp_max;
         private int humidity;
@@ -34,7 +36,9 @@ public class WeatherDto {
     public static class FilterRequest{
         private final List<SetData> set = new ArrayList<>();
 
-        private static class SetData{
+        @Getter
+        @Setter
+        public static class SetData{
             private String category;
             private String length;
             private String fabric;

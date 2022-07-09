@@ -23,7 +23,8 @@ public class WeatherController {
         return weatherServiceImpl.getRegionWeatherInfo(weatherRequest);
     }
 
-    public WeatherDto.FilterResponse getRecommendedDate(@RequestBody WeatherDto.FilterRequest filterRequest){
+    @PostMapping("/recommend")
+    public WeatherDto.FilterResponse getRecommendedDate(@RequestBody WeatherDto.FilterRequest filterRequest) throws JSONException {
         return weatherServiceImpl.recommendDate(filterRequest);
     }
 

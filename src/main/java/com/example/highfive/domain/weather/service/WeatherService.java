@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface WeatherService {
+
+//    saveClothesCombination()
     List<WeatherDto.WeatherResponse> getRegionWeatherInfo(WeatherDto.WeatherRequest weatherRequest) throws JSONException;
 
-    WeatherDto.FilterResponse recommendDate(WeatherDto.FilterRequest filterRequest);
+    WeatherDto.FilterResponse recommendDate(WeatherDto.FilterRequest filterRequest) throws JSONException;
 }

@@ -1,5 +1,8 @@
 package com.example.highfive.domain.category.domain;
 
+import lombok.Getter;
+
+@Getter
 public enum Thick {
 
     매우_얇음(1.2, 0.0, 0.0),
