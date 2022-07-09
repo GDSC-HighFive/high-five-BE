@@ -23,4 +23,8 @@ public class WeatherController {
         return weatherServiceImpl.getRegionWeatherInfo(weatherRequest);
     }
 
+    public WeatherDto.FilterResponse getRecommendedDate(@RequestBody WeatherDto.FilterRequest filterRequest){
+        return weatherServiceImpl.recommendDate(filterRequest);
+    }
+
 }

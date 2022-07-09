@@ -10,12 +10,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+
+import static java.lang.Math.*;
 
 @Service
 @RequiredArgsConstructor
@@ -54,15 +59,70 @@ public class WeatherServiceImpl implements WeatherService {
             JSONObject main = (JSONObject) result.get("main");
 
             resultList.add(WeatherDto.WeatherResponse.builder()
-                    .description(weather1.get("description").toString())
-                    .humidity(Long.parseLong(main.get("humidity").toString()))
-                    .temp(Float.parseFloat(main.get("temp").toString()))
-                    .temp_min(Float.parseFloat(main.get("temp_min").toString()))
-                    .temp_max(Float.parseFloat(main.get("temp_max").toString()))
-                    .date(result.get("dt_txt").toString())
+                    .description(weather1.get("main").toString())
+                    .humidity(Integer.parseInt(main.get("humidity").toString()))
+                    .temp_min(Double.parseDouble(main.get("temp_min").toString()))
+                    .temp_max(Double.parseDouble(main.get("temp_max").toString()))
+                    .date(result.get("dt_txt").toString().substring(0, 10))
                     .build());
         }
-        return resultList;
+        return getDailyTemperature(resultList);
+    }
+
+    @Override
+    public WeatherDto.FilterResponse recommendDate(WeatherDto.FilterRequest filterRequest) {
+        return null;
+        //하루의 최저 / 최고 온도 구하기
+    }
+
+    private List<WeatherDto.WeatherResponse> getDailyTemperature(List<WeatherDto.WeatherResponse> dataList){
+        List<WeatherDto.WeatherResponse> arrayList = new ArrayList<>();
+        int humidity = 0; int count = 0;
+        double temp_min= Double.POSITIVE_INFINITY ; double temp_max = 0.0;
+
+        String nextDate = LocalDate.now().plusDays(1).toString();
+        for (WeatherDto.WeatherResponse weatherResponse : dataList) {
+            if(Integer.parseInt(nextDate.substring(8,10)) !=
+                    Integer.parseInt(weatherResponse.getDate().substring(8,10))){
+                count++;
+                temp_max = max(temp_max, weatherResponse.getTemp_max());
+                temp_min = min(temp_min, weatherResponse.getTemp_min());
+                humidity += weatherResponse.getHumidity();
+            }else{
+                break;
+            }
+        }
+
+        humidity /= count;
+        arrayList.add(WeatherDto.WeatherResponse.builder()    // 당일 데이터
+                .description(dataList.get(0).getDescription())
+                .temp_max(temp_max)
+                .temp_min(temp_min)
+                .humidity(humidity)
+                .date(dataList.get(count-1).getDate()).build());
+
+
+        for(int i = count; i < dataList.size() ; i+=7){
+            humidity = 0; temp_min = Double.POSITIVE_INFINITY; temp_max= 0.0;
+            for(int j = i ; j <= i+7 ; j++){
+                if (j >= dataList.size()) break;
+                temp_max = max(temp_max, dataList.get(j).getTemp_max());
+                temp_min = min(temp_min, dataList.get(j).getTemp_min());
+                humidity += dataList.get(j).getHumidity();
+            }
+            arrayList.add(WeatherDto.WeatherResponse.builder()    // 당일 데이터
+                    .description(dataList.get(i).getDescription())
+                    .temp_max(temp_max)
+                    .temp_min(temp_min)
+                    .humidity(humidity)
+                    .date(dataList.get(i).getDate()).build());
+            if (i >= dataList.size()) break;
+        }
+        return arrayList;
+    }
+
+    private void getMaxAndMinTemperatureInDaily(List<WeatherDto.WeatherResponse> dataList){
+
     }
 
 }

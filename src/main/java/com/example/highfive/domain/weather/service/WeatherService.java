@@ -8,4 +8,6 @@ import java.util.Map;
 
 public interface WeatherService {
     List<WeatherDto.WeatherResponse> getRegionWeatherInfo(WeatherDto.WeatherRequest weatherRequest) throws JSONException;
+
+    WeatherDto.FilterResponse recommendDate(WeatherDto.FilterRequest filterRequest);
 }

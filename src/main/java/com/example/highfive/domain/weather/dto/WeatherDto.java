@@ -2,8 +2,8 @@ package com.example.highfive.domain.weather.dto;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 public class WeatherDto {
@@ -22,14 +22,32 @@ public class WeatherDto {
     @Builder
     public static class WeatherResponse{
         private String description;
-        private Float temp;
-        private Float temp_min;
-        private Float temp_max;
-        private Long humidity;
+        private Double temp_min;
+        private Double temp_max;
+        private int humidity;
         private String date;
     }
 
-    public static class FilterRequest{
 
+    @Getter
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    public static class FilterRequest{
+        private final List<SetData> set = new ArrayList<>();
+
+        private static class SetData{
+            private String category;
+            private String length;
+            private String fabric;
+            private String thick;
+        }
+    }
+
+    @Getter
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor
+    @Builder
+    public static class FilterResponse{
+        private String date;
+        private int recommendPercent;
     }
 }
