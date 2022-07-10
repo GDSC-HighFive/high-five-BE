@@ -25,9 +25,12 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.persistence.Convert;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Stream;
 
+import static com.fasterxml.jackson.databind.type.LogicalType.DateTime;
 import static java.lang.Math.*;
 
 @Service
@@ -92,6 +95,7 @@ public class WeatherServiceImpl implements WeatherService {
     @Override
     public WeatherDto.FilterResponse recommendDate(WeatherDto.FilterRequest filterRequest) throws JSONException {
         // 1) 날씨 정보 모두 변환해서 저장
+        Map<Integer, Double> totalMap = new HashMap<>();
         Map<String, List<String>> totalWeatherInfo = new HashMap<>();
         List<WeatherDto.WeatherResponse> regionWeatherInfo = getRegionWeatherInfo(WeatherDto.WeatherRequest.builder().lat(LAT).lon(LON).build());
         for(WeatherDto.WeatherResponse weather : regionWeatherInfo) {
@@ -105,7 +109,7 @@ public class WeatherServiceImpl implements WeatherService {
                 weather1 = Weather1.맑음;
             } else if (rain >= 10 && rain < 40 && weather.getDescription().equals("CLEAR")) {
                 weather1 = Weather1.흐림;
-            } else {    // 비/눈
+            } else {
                 weather1 = Weather1.비와눈;
             }
 
@@ -139,25 +143,26 @@ public class WeatherServiceImpl implements WeatherService {
             array.add(weather3.name());
             array.add(weather.getTemp_max().toString());
             array.add(weather.getTemp_min().toString());
+            array.add(weather.getDate());
             totalWeatherInfo.put(weather.getDate(), array);
         }
 
         //2)
-        // 날씨 - 옷 비교 (옷 하나에 대해 => 5일치 날짜 모두 계산)
+        // 날씨 - 옷 비교
         List<SetData> dataSet = filterRequest.getSet();
-        Fabric fabric = null; Length length = null;
-        for(SetData data : dataSet){
+        for(SetData data : dataSet){   //3개
+            double result = 0.0;
             Category category = Category.valueOf(data.getCategory());
-            fabric = Fabric.valueOf(data.getFabric());
-            length = Length.valueOf(data.getLength());
+            Fabric fabric = Fabric.valueOf(data.getFabric());
+            Length length = Length.valueOf(data.getLength());
             Thick thick = Thick.valueOf(data.getThick());
 
-            for(List<String> arr : totalWeatherInfo.values()) { // <5일치 날짜에 대하여>
+            for(List<String> arr : totalWeatherInfo.values()) {  //5개
                 int point1 = NO_POINT;
                 int point2 = NO_POINT;
-                int point3 = NO_POINT;   // 세트 하나에 포인트 하나
+                int point3 = NO_POINT;
 
-                //1) 옷 소재 적합 여부 판단 면일때 => 날씨가 맑음 / 건조 / 추움
+                //1) 옷 소재 적합 여부 판단
                 if (fabric.name().equals(Fabric.면.name())) {
                     point1 = GIVEN_POINT_1;
                     point2 = GIVEN_POINT_2;
@@ -165,7 +170,7 @@ public class WeatherServiceImpl implements WeatherService {
                 } else if (fabric.name().equals(Fabric.린넨.name())) {
                     point1 = GIVEN_POINT_1;
                     point2 = GIVEN_POINT_2;
-                    if (!arr.get(2).equals(Fabric.린넨.getWeather3().name())) {  //둘이 같지 않으면 만족
+                    if (!arr.get(2).equals(Fabric.린넨.getWeather3().name())) {
                         point3 = GIVEN_POINT_3;
                     }
                 } else if (fabric.name().equals(Fabric.울.name())) {
@@ -197,12 +202,111 @@ public class WeatherServiceImpl implements WeatherService {
                     }
                     point1 = GIVEN_POINT_1;
                 }
-                double total = point1 + point2 + point3;
-                log.info("points = {} {} {}", point1, point2, point3);
-            }
 
+                // 얇기
+                if(thick.name().equals(Thick.매우_얇음.name())){
+                    if(!arr.get(0).equals(Thick.얇음.getWeather3().name())){
+                        point1 += GIVEN_POINT_1;
+                    }
+                    if(!arr.get(1).equals(Thick.얇음.getWeather3().name())){
+                        point2 += GIVEN_POINT_2;
+                    }
+                    if(!arr.get(2).equals(Thick.얇음.getWeather1().name())){
+                        point2 += GIVEN_POINT_3;
+                    }
+                }else if(thick.name().equals(Thick.얇음.name())){
+                    if(!arr.get(0).equals(Thick.얇음.getWeather1().name())){
+                        point1 += GIVEN_POINT_1;
+                    }
+                    if(!arr.get(2).equals(Thick.얇음.getWeather1().name())){
+                        point3 += GIVEN_POINT_3;
+                    }
+                    point2 += GIVEN_POINT_2;
+                }else if(thick.name().equals(Thick.두꺼움.name())){
+                    if(!arr.get(0).equals(Thick.얇음.getWeather1().name())){
+                        point1 += GIVEN_POINT_1;
+                    }
+                    if(!arr.get(1).equals(Thick.얇음.getWeather1().name())){
+                        point2 += GIVEN_POINT_2;
+                    }
+                    if(!arr.get(2).equals(Thick.얇음.getWeather3().name())){
+                        point3 += GIVEN_POINT_3;
+                    }
+                }else if(thick.name().equals(Thick.매우_두꺼움.name())){
+                    if(!arr.get(0).equals(Thick.얇음.getWeather1().name())){
+                        point1 += GIVEN_POINT_1;
+                    }
+                    if(!arr.get(2).equals(Thick.얇음.getWeather3().name())){
+                        point3 += GIVEN_POINT_3;
+                    }
+                    point2 += point2;
+                }else{
+                    point1 += GIVEN_POINT_1;
+                    point2 += GIVEN_POINT_2;
+                    point3 += GIVEN_POINT_3;
+                }
+
+                //옷 길이
+                if(length.name().equals(Length.짧음.name())) {
+                    if(!arr.get(0).equals(Length.짧음.getWeather3().name())){
+                        point1 += GIVEN_POINT_1;
+                    }
+                    if(!arr.get(2).equals(Thick.얇음.getWeather1().name())){
+                        point3 += GIVEN_POINT_3;
+                    }
+                    point2 += GIVEN_POINT_2;
+                }else if(length.name().equals(Length.긺.name())){
+                    if(!arr.get(0).equals(Length.짧음.getWeather1().name())){
+                        point1 += GIVEN_POINT_1;
+                    }
+                    if(!arr.get(2).equals(Thick.얇음.getWeather3().name())){
+                        point3 += GIVEN_POINT_3;
+                    }
+                    point2 += GIVEN_POINT_2;
+                }else{
+                    point1 += GIVEN_POINT_1;
+                    point2 += GIVEN_POINT_2;
+                    point3 += GIVEN_POINT_3;
+                }
+
+                String s = arr.get(5).replace("-", "");
+                int newKey = Integer.parseInt(s);
+                double total = (point1 + point2 + point3) / (double)(dataSet.size());
+                totalMap.put(newKey, total);
+            }
         }
-        // 합산해서 순위 매기기
+
+        Object[] keyArray = totalMap.keySet().toArray();
+        Arrays.sort(keyArray);
+        log.info("keyArrayList = {}", keyArray.length);
+
+        Map<Integer, Double> resultTempMap = new HashMap<>();
+
+        for(int i = 0; i< keyArray.length/5 ; i++){
+            double temp = 0.0;
+            for(int j = i; j< keyArray.length; j+=5){
+
+                temp += totalMap.get((totalMap.keySet().toArray())[i]);
+            }
+            Object object = (totalMap.keySet().toArray())[i];
+            resultTempMap.put((int)object, temp);
+            log.info("object={}", (int)object);
+        }
+
+
+
+
+        // value 값이 최대인데 같음 = 다 좋음  value 값이 최소인데 같음 = 다 나쁨
+        // 나머지는 다 보통 8 7 6 5 4 3 3
+
+//
+//        totalWeatherInfo.keySet()
+//        WeatherDto.FilterResponse.builder() //날짜별 데이터
+//                .min_temp()
+//                .max_temp()
+//                .weather() //cloud
+//                .status()   //총 결과
+//                .date().build();   //현재 날짜
         return null;
     }
 

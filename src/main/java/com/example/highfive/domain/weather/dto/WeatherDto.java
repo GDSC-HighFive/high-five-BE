@@ -51,7 +51,11 @@ public class WeatherDto {
     @AllArgsConstructor
     @Builder
     public static class FilterResponse{
+        //최고, 최저, 코디 판단, 날짜, 날씨(구름/맑음/비.눈)구분
+        private String max_temp;
+        private String min_temp;
+        private String status;
         private String date;
-        private int recommendPercent;
+        private String weather;
     }
 }

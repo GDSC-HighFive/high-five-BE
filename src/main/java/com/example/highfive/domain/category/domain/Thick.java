@@ -1,24 +1,26 @@
 package com.example.highfive.domain.category.domain;
 
+import com.example.highfive.domain.weather.dto.Weather1;
+import com.example.highfive.domain.weather.dto.Weather2;
+import com.example.highfive.domain.weather.dto.Weather3;
 import lombok.Getter;
+
 
 @Getter
 public enum Thick {
 
-    매우_얇음(1.2, 0.0, 0.0),
-    얇음(1.1,0.5, 1.0),  // 옷, 신발, 모자
-    보통(1.0, 0.0, 0.0),
-    두꺼움(0.9, 1.0, 2.0),
-    매우_두꺼움(0.8, 0.0 ,0.0);
+    매우_얇음(Weather1.비와눈, Weather2.습함, Weather3.추움),
+    얇음(Weather1.맑음, null, Weather3.추움),
+    두꺼움(Weather1.맑음, null, Weather3.더움),
+    매우_두꺼움(Weather1.맑음, Weather2.건조, Weather3.더움);
 
-    private final double percent;
-    private final double second;
+    private Weather1 weather1;
+    private Weather2 weather2;
+    private Weather3 weather3;
 
-    private final double third;
-
-    Thick(double percent, double second, double third){
-        this.percent = percent;
-        this.second = second;
-        this.third = third;
+    Thick(Weather1 weather1, Weather2 weather2, Weather3 weather3){
+        this.weather1 = weather1;
+        this.weather2 = weather2;
+        this.weather3 = weather3;
     }
 }
